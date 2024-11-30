@@ -5,17 +5,22 @@ from datetime import datetime, timedelta
 import flet as ft
 import pygame
 
+from components.sidebar import sidebar
+
 pygame.mixer.init()
+
 
 def play_alarm_sound():
     pygame.mixer.music.load("sound.wav")
     print("Playing alarm sound...")
     pygame.mixer.music.play(-1)
 
+
 def stop_alarm_sound():
     if pygame.mixer.music.get_busy():
         pygame.mixer.music.stop()
         print("Alarm sound stopped.")
+
 
 def check_alarms(alarms, page):
     while True:
@@ -34,6 +39,7 @@ def check_alarms(alarms, page):
                 alarms.remove(alarm)
                 page.update()
         time.sleep(1)
+
 
 def show_stop_popup(page, alarm_text):
     def stop_alarm(e):
@@ -61,9 +67,12 @@ def show_stop_popup(page, alarm_text):
     popup.open = True
     page.update()
 
+
 def main(page: ft.Page):
     page.title = "Alarm Manager"
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
+    rail = sidebar()
+    rail.on_change = lambda e: print("Success Click")
     alarms = []
 
     def add_alarm(selected_time, alarm_to_edit=None):
@@ -75,10 +84,14 @@ def main(page: ft.Page):
 
         if alarm_to_edit:
             alarm_to_edit["time"] = alarm_time
-            alarm_to_edit["time_text"].value = f"Alarm set for: {alarm_time.strftime('%H:%M:%S')}"
+            alarm_to_edit[
+                "time_text"
+            ].value = f"Alarm set for: {alarm_time.strftime('%H:%M:%S')}"
             page.update()
         else:
-            alarm_text = ft.Text(f"Alarm set for: {alarm_time.strftime('%H:%M:%S')}", size=16)
+            alarm_text = ft.Text(
+                f"Alarm set for: {alarm_time.strftime('%H:%M:%S')}", size=16
+            )
             alarm = {
                 "time": alarm_time,
                 "time_text": alarm_text,
@@ -116,7 +129,7 @@ def main(page: ft.Page):
                             ),
                         ],
                         alignment=ft.MainAxisAlignment.END,
-                    )
+                    ),
                 ],
                 spacing=10,
                 alignment=ft.MainAxisAlignment.SPACE_EVENLY,
@@ -137,7 +150,9 @@ def main(page: ft.Page):
 
     def edit_alarm(e, alarm):
         nonlocal time_picker
-        time_picker.on_change = lambda e: add_alarm(time_picker.value, alarm_to_edit=alarm)
+        time_picker.on_change = lambda e: add_alarm(
+            time_picker.value, alarm_to_edit=alarm
+        )
         time_picker.open = True
         page.dialog = time_picker
         page.update()
@@ -159,29 +174,42 @@ def main(page: ft.Page):
         page.dialog = time_picker
         page.update()
 
-    page.add(
-        ft.Text(
-            "⏰ Alarm Manager",
-            size=24,
-            weight=ft.FontWeight.BOLD,
-            color=ft.colors.BLUE,
-        )
-    )
-
     alarm_list = ft.Column(spacing=10, scroll=ft.ScrollMode.ADAPTIVE)
 
     page.add(
-        ft.ElevatedButton(
-            text="Set Alarm",
-            icon=ft.icons.ALARM,
-            bgcolor=ft.colors.BLUE,
-            color=ft.colors.WHITE,
-            on_click=open_time_picker,
-        ),
-        alarm_list,
+        ft.Row(
+            [
+                rail,
+                ft.VerticalDivider(width=1),
+                ft.Column(
+                    [
+                        ft.Text(
+                            "⏰ Alarm Manager",
+                            size=24,
+                            weight=ft.FontWeight.BOLD,
+                            color=ft.colors.BLUE,
+                        ),
+                        ft.ElevatedButton(
+                            text="Set Alarm",
+                            icon=ft.icons.ALARM,
+                            bgcolor=ft.colors.BLUE,
+                            color=ft.colors.WHITE,
+                            on_click=open_time_picker,
+                        ),
+                        alarm_list,
+                    ],
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                    expand=True,
+                ),
+            ],
+            expand=True,
+        )
     )
 
-    alarm_thread = threading.Thread(target=check_alarms, args=(alarms, page), daemon=True)
+    alarm_thread = threading.Thread(
+        target=check_alarms, args=(alarms, page), daemon=True
+    )
     alarm_thread.start()
+
 
 ft.app(target=main)

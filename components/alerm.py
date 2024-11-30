@@ -10,7 +10,7 @@ class Alarm:
     def __init__(self, sound: Sound, page: ft.Page):
         self._sound = sound
         self._page = page
-        self._alarms = []
+        self.alarms = []
         self.alarm_list = ft.Column(
             spacing=10, expand=True, scroll=ft.ScrollMode.ADAPTIVE
         )
@@ -18,7 +18,7 @@ class Alarm:
     def check_alarms(self):
         while True:
             now = datetime.now()
-            for alarm in self._alarms.copy():
+            for alarm in self.alarms.copy():
                 if alarm["active"] and now >= alarm["time"]:
                     alarm_text = ft.Text(
                         f"⏰ Alarm! It's {alarm['time'].strftime('%H:%M:%S')}",
@@ -29,7 +29,7 @@ class Alarm:
                     self._page.add(alarm_text)
                     self.show_stop_popup(alarm_text)
                     self._sound.play_alarm_sound()
-                    self._alarms.remove(alarm)
+                    self.alarms.remove(alarm)
                     self._page.update()
             time.sleep(1)
 
@@ -70,9 +70,9 @@ class Alarm:
 
             if alarm_to_edit:
                 alarm_to_edit["time"] = alarm_time
-                alarm_to_edit[
-                    "time_text"
-                ].value = f"Alarm set for: {alarm_time.strftime('%H:%M:%S')}"
+                alarm_to_edit["time_text"].value = (
+                    f"Alarm set for: {alarm_time.strftime('%H:%M:%S')}"
+                )
                 self._page.update()
             else:
                 alarm_text = ft.Text(
@@ -128,7 +128,7 @@ class Alarm:
                     width=400,
                     height=50,
                 )
-                self._alarms.append(alarm)
+                self.alarms.append(alarm)
                 self.alarm_list.controls.append(alarm["widget"])
                 self._page.update()
 
@@ -136,7 +136,7 @@ class Alarm:
             alarm["active"] = e.control.value
 
         def delete_alarm(e, alarm):
-            self._alarms.remove(alarm)
+            self.alarms.remove(alarm)
             self.alarm_list.controls.remove(alarm["widget"])
             self._page.update()
 

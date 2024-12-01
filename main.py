@@ -4,6 +4,7 @@ import flet as ft
 
 from components.alerm import Alarm
 from components.sidebar import sidebar
+from components.timer import Timer
 from utils.sound import Sound
 
 sound = Sound()
@@ -14,6 +15,7 @@ def main(page: ft.Page):
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
     selected_index = 0
     alarm = Alarm(sound, page)
+    timer = Timer(sound, page)
     content = ft.Container(
         expand=True,
     )
@@ -25,7 +27,7 @@ def main(page: ft.Page):
         if selected_index == 0:
             content.content = alarm.alerm()
         else:
-            content.content = ft.Text("hoge")
+            content.content = timer.timer()
         page.update()
 
     rail = sidebar(on_change)

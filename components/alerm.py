@@ -16,9 +16,11 @@ class Alarm:
         )
 
     def check_alarms(self):
+        # TODO: ここの処理を変えてアラームを止めたらOFFにできるようにする
         while True:
+            print(self.alarms)
             now = datetime.now()
-            for alarm in self.alarms.copy():
+            for index, alarm in enumerate(self.alarms.copy()):
                 if alarm["active"] and now >= alarm["time"]:
                     alarm_text = ft.Text(
                         f"⏰ Alarm! It's {alarm['time'].strftime('%H:%M:%S')}",
@@ -27,16 +29,16 @@ class Alarm:
                         weight=ft.FontWeight.BOLD,
                     )
                     self._page.add(alarm_text)
-                    self.show_stop_popup(alarm_text)
+                    self.show_stop_popup(alarm_text, index)
                     self._sound.play_alarm_sound()
-                    self.alarms.remove(alarm)
                     self._page.update()
             time.sleep(1)
 
-    def show_stop_popup(self, alarm_text):
+    def show_stop_popup(self, alarm_text, index):
         def stop_alarm(e):
             self._sound.stop_alarm_sound()
             popup.open = False
+            self.alarms[index]["active"] = False
             if self._page.controls:
                 self._page.controls.remove(alarm_text)
             self._page.update()
@@ -70,9 +72,9 @@ class Alarm:
 
             if alarm_to_edit:
                 alarm_to_edit["time"] = alarm_time
-                alarm_to_edit[
-                    "time_text"
-                ].value = f"Alarm set for: {alarm_time.strftime('%H:%M:%S')}"
+                alarm_to_edit["time_text"].value = (
+                    f"Alarm set for: {alarm_time.strftime('%H:%M:%S')}"
+                )
                 self._page.update()
             else:
                 alarm_text = ft.Text(
@@ -89,7 +91,7 @@ class Alarm:
                         ft.Row(
                             controls=[
                                 ft.Switch(
-                                    value=True,
+                                    value=alarm["active"],
                                     on_change=lambda e, alarm=alarm: toggle_alarm(
                                         e, alarm
                                     ),

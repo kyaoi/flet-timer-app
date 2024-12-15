@@ -1,5 +1,5 @@
-import time
 from datetime import datetime, timedelta
+from time import sleep
 
 import flet as ft
 
@@ -34,7 +34,7 @@ class Alarm:
                     self._page.update()
                     # アラームが止められたときにスイッチをOFFにする
                     self._trigger_off_alarm_display(alarm)
-            time.sleep(1)
+            sleep(1)
 
     def _trigger_off_alarm_display(self, alarm: AlarmType) -> None:
         if alarm["widget"] is None:

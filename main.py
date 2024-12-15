@@ -13,12 +13,12 @@ sound = Sound()
 def main(page: ft.Page):
     page.title = "Alarm Manager"
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
-    selected_index = 0
     alarm = Alarm(sound, page)
     timer = Timer(sound, page)
     content = ft.Container(
         expand=True,
     )
+    selected_index = 0
     content.content = alarm.alarm()
 
     def on_change(e: ft.ControlEvent):
@@ -31,6 +31,9 @@ def main(page: ft.Page):
         page.update()
 
     rail = sidebar(on_change)
+    # FIXME: 開発終了後元に戻す
+    rail.selected_index = 1
+    content.content = timer.timer()
     page.add(
         ft.Row(
             [
@@ -43,7 +46,9 @@ def main(page: ft.Page):
     )
 
     alarm_thread = threading.Thread(target=alarm.check_alarms, daemon=True)
+    timer_thread = threading.Thread(target=timer.check_timers, daemon=True)
     alarm_thread.start()
+    timer_thread.start()
 
 
 ft.app(target=main)

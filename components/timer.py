@@ -1,8 +1,9 @@
-import time
-from datetime import datetime, timedelta
+from datetime import time
+from time import sleep
 
 import flet as ft
 
+from components.types import TimerType
 from utils.sound import Sound
 
 # [Timerの設計]
@@ -26,27 +27,31 @@ class Timer:
     def __init__(self, sound: Sound, page: ft.Page):
         self._sound = sound
         self._page = page
-        self.timers = []  # タイマーリスト
+        self.timers: list[TimerType] = []  # タイマーリスト
         self.timer_list = ft.Column(
-            spacing=10, expand=True, scroll=ft.ScrollMode.ADAPTIVE
+            spacing=10,
+            expand=True,
+            scroll=ft.ScrollMode.ADAPTIVE,
         )
         self._save_button_disabled = False
         self.error_message = ft.Text(value="", size=12, color=ft.colors.RED)
+        self.active_timer = None
 
     def check_timers(self):
+        print("hoge")
         while True:
-            now = datetime.now()
-            # 時間の短い順にソート
-            self.timers.sort(key=lambda t: t["time"])
-            for timer in self.timers.copy():
-                if now >= timer["time"]:
-                    self.show_popup(timer)
-                    self._sound.play_alarm_sound()
-                    self.timers.remove(timer)
-                    self.update_timer_list()
-            time.sleep(1)
+            # if self.active_timer:
+            #     now = datetime.now()
+            #     for timer in self.timers.copy():
+            #         if now.time() >= timer["time"]:
+            #             self._show_popup(timer)
+            #             self._sound.play_alarm_sound()
+            #             self.timers.remove(timer)
+            #             self._update_timer_list()
+            #
+            sleep(1)
 
-    def show_popup(self, timer):
+    def _show_popup(self, timer):
         """タイマー終了時のポップアップ表示"""
 
         def stop_sound(e):
@@ -75,31 +80,100 @@ class Timer:
         popup.open = True
         self._page.update()
 
-    def update_timer_list(self):
+    def _update_timer_list(self):
         """タイマーリストのUIを更新"""
         self.timer_list.controls.clear()
+
         for timer in sorted(self.timers, key=lambda t: t["time"]):
-            timer_text = ft.Row(
+            time_str = []
+            if timer["time"].hour != 0:
+                time_str.append(f"{timer['time'].hour}時間")
+            if timer["time"].minute != 0:
+                time_str.append(f"{timer['time'].minute}分")
+            if timer["time"].second != 0:
+                time_str.append(f"{timer['time'].second}秒")
+            formatted_time = "".join(time_str) if time_str else "0秒"
+
+            timer_details = ft.Column(
                 controls=[
-                    ft.Text(f"Name: {timer['name']}\nTime: {str(timer['time'])}"),
+                    ft.Text(
+                        f"{timer['name']}",
+                        size=14,
+                        weight=ft.FontWeight.BOLD,
+                        color=ft.colors.BLUE_GREY_900,
+                        no_wrap=True,
+                        overflow=ft.TextOverflow.ELLIPSIS,
+                        max_lines=1,
+                        width=200,
+                    ),
+                    ft.Text(
+                        f"⏳ {formatted_time}",
+                        size=14,
+                        color=ft.colors.BLUE_GREY_700,
+                    ),
+                ],
+                spacing=2,
+            )
+
+            action_buttons = ft.Row(
+                controls=[
+                    ft.IconButton(
+                        icon=ft.icons.PAUSE if timer["active"] else ft.icons.PLAY_ARROW,
+                        icon_color=ft.colors.GREEN,
+                        on_click=lambda _, timer=timer: self._toggle_timer(timer),
+                    ),
                     ft.IconButton(
                         icon=ft.icons.DELETE,
                         icon_color=ft.colors.RED,
-                        on_click=lambda e, timer=timer: self.delete_timer(timer),
+                        on_click=lambda _, timer=timer: self._delete_timer(timer),
                     ),
                 ],
-                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                alignment=ft.MainAxisAlignment.END,
             )
-            self.timer_list.controls.append(timer_text)
+
+            timer["widget"] = ft.Container(
+                content=ft.Row(
+                    controls=[timer_details, action_buttons],
+                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                ),
+                padding=10,
+                border_radius=8,
+                bgcolor=ft.colors.BLUE_GREY_50,
+                margin=ft.margin.symmetric(vertical=5, horizontal=10),
+                shadow=ft.BoxShadow(
+                    spread_radius=1,
+                    blur_radius=3,
+                    color=ft.colors.BLUE_GREY_200,
+                ),
+            )
+
+            self.timer_list.controls.append(timer["widget"])
+
         self._page.update()
 
-    def delete_timer(self, timer):
+    def _update_active_timer(self, timer: TimerType):
+        # TODO: ここでactive_timerを更新する
+        pass
+
+    def _toggle_timer(self, timer: TimerType):
+        """タイマーの動作を制御"""
+        if not timer["active"]:
+            for t in self.timers:
+                t["active"] = False
+            self.active_timer = timer
+
+        timer["active"] = not timer["active"]
+        self._update_timer_list()
+
+    def _delete_timer(self, timer: TimerType):
         """タイマーを削除"""
         self.timers.remove(timer)
-        self.update_timer_list()
+        if self.active_timer == timer:
+            self.active_timer = None
+        self._update_timer_list()
 
-    def timer(self):
-        def open_timer_popup(e):
+    def timer(self) -> ft.Container:
+        def open_timer_popup(_):
             """タイマー設定ポップアップを表示"""
 
             # 入力フィールドと増減ボタン
@@ -183,18 +257,23 @@ class Timer:
                         self._page.update()
                         return
 
-                    timer_time = timedelta(
-                        hours=hours, minutes=minutes, seconds=seconds
-                    )
+                    timer_time = time(hour=hours, minute=minutes, second=seconds)
                     timer_name = (
                         name_field.value.strip()
                         if name_field.value
                         else f"Timer {len(self.timers) + 1}"
                     )
 
+                    timer: TimerType = {
+                        "name": timer_name,
+                        "time": timer_time,
+                        "active": False,
+                        "widget": None,
+                    }
+
                     # タイマーをリストに追加
-                    self.timers.append({"name": timer_name, "time": timer_time})
-                    self.update_timer_list()
+                    self.timers.append(timer)
+                    self._update_timer_list()
                     popup.open = False
                     self.error_message.value = ""
                     self._page.update()
@@ -205,7 +284,7 @@ class Timer:
                     self._page.snack_bar.open = True
                     self._page.update()
 
-            def cancel_timer(e):
+            def cancel_timer(_):
                 """ポップアップを閉じる"""
                 popup.open = False
                 self.error_message.value = ""
@@ -213,7 +292,6 @@ class Timer:
 
             # ポップアップ内容
             popup = ft.AlertDialog(
-                modal=True,
                 title=ft.Text("Add New Timer", text_align=ft.TextAlign.CENTER),
                 content=ft.Column(
                     [
@@ -238,6 +316,7 @@ class Timer:
                         text="Save",
                         on_click=save_timer,
                         bgcolor=ft.colors.BLUE,
+                        color=ft.colors.WHITE,
                         disabled=self._save_button_disabled,
                     ),
                     ft.TextButton(text="Cancel", on_click=cancel_timer),

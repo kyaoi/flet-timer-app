@@ -5,12 +5,10 @@ class Sound:
     def __init__(self):
         pygame.mixer.init()
 
-    def play_alarm_sound(self):
+    def play_alarm_sound(self) -> None:
         pygame.mixer.music.load("sound.wav")
-        print("Playing alarm sound...")
         pygame.mixer.music.play(-1)
 
-    def stop_alarm_sound(self):
+    def stop_alarm_sound(self) -> None:
         if pygame.mixer.music.get_busy():
             pygame.mixer.music.stop()
-            print("Alarm sound stopped.")

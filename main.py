@@ -2,7 +2,7 @@ import threading
 
 import flet as ft
 
-from components.alerm import Alarm
+from components.alarm import Alarm
 from components.sidebar import sidebar
 from components.timer import Timer
 from utils.sound import Sound
@@ -19,13 +19,13 @@ def main(page: ft.Page):
     content = ft.Container(
         expand=True,
     )
-    content.content = alarm.alerm()
+    content.content = alarm.alarm()
 
     def on_change(e: ft.ControlEvent):
         nonlocal selected_index
         selected_index = e.control.selected_index
         if selected_index == 0:
-            content.content = alarm.alerm()
+            content.content = alarm.alarm()
         else:
             content.content = timer.timer()
         page.update()

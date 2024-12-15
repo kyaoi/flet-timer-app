@@ -5,49 +5,47 @@ on:
     tags:
       - "v*"
 
+
 jobs:
-  release:
+  create-release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: "Create Release"
+        run: gh release create ${{github.ref_name}} --draft --verify-tag --notes "Release ${{github.ref_name}}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  cross-build:
+    needs: create-release
+    strategy:
+      matrix:
+        include:
+          - runs-on: windows-latest
+            flet-name: timer_app
+            binary-name: timer_app.zip
+
+    runs-on: ${{ matrix.runs-on }}
 
     permissions:
       contents: write
 
     steps:
-      - name: Check out Git repository
-        uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
         with:
-          python-version: '3.13.0'  
+          python-version: 3.13
+          cache: "pip"
+      - run: pip install -r requirements.txt
+      - run: flet pack app.py --name ${{ matrix.flet-name }}
+      - name: "Windows compress"
+        if: runner.os == 'Windows'
+        run: powershell Compress-Archive -Path dist -DestinationPath ${{matrix.binary-name}}
 
-      - name: Install Flutter SDK
-        uses: subosito/flutter-action@v2
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
-      - name: Build Flet App for Windows
-        run: flet build windows
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: flet-app-windows
-          path: dist/  
-
-      - name: Create GitHub Release
-        uses: actions/create-release@v1
-        with:
-          tag_name: ${{ github.ref_name }}  
-          release_name: "Release ${{ github.ref_name }}"  
-
-      - name: Upload to Release
-        uses: actions/upload-release-asset@v1
-        with:
-          upload_url: ${{ steps.create-release.outputs.upload_url }}
-          asset_path: dist/main.exe
-          asset_name: main-${{ github.ref_name }}.exe  
-          asset_content_type: application/octet-stream
+      - name: "Upload Release"
+        run: gh release upload ${{github.ref_name}} ${{matrix.binary-name}}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

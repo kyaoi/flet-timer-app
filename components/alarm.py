@@ -78,9 +78,9 @@ class Alarm:
 
             if alarm_to_edit:
                 alarm_to_edit["time"] = alarm_time
-                alarm_to_edit[
-                    "time_text"
-                ].value = f"Alarm set for: {alarm_time.strftime('%H:%M')}"
+                alarm_to_edit["time_text"].value = (
+                    f"Alarm set for: {alarm_time.strftime('%H:%M')}"
+                )
                 self._page.update()
             else:
                 alarm_text = ft.Text(
@@ -162,6 +162,7 @@ class Alarm:
 
         def edit_alarm(_, alarm: AlarmType) -> None:
             nonlocal time_picker
+            time_picker.value = datetime.now().time()
             time_picker.on_change = lambda _: add_alarm(
                 time_picker.value, alarm_to_edit=alarm
             )
@@ -182,6 +183,7 @@ class Alarm:
         )
 
         def open_time_picker(_) -> None:
+            time_picker.value = datetime.now().time()
             time_picker.on_change = handle_time_selected
             time_picker.open = True
             self._page.dialog = time_picker

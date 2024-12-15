@@ -39,8 +39,11 @@ jobs:
         with:
           python-version: 3.13
           cache: "pip"
-      - run: pip install -r requirements.txt
-      - run: flet pack app.py --name ${{ matrix.flet-name }}
+      - run: |
+          pip install -r requirements.txt
+          pip install pyinstaller
+      - run: flet pack main.py --name ${{ matrix.flet-name } --add-data "assets:assets" --add-data "sound.wav:." --icon "assets/icon.png"
+
       - name: "Windows compress"
         if: runner.os == 'Windows'
         run: powershell Compress-Archive -Path dist -DestinationPath ${{matrix.binary-name}}

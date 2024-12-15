@@ -1,4 +1,5 @@
-from datetime import datetime, time
+from datetime import datetime
+from datetime import time as t
 from typing import TypedDict
 
 import flet as ft
@@ -14,7 +15,7 @@ class AlarmType(TypedDict):
 class TimerType(TypedDict):
     id: str
     name: str
-    time: time
+    time: t
     active: bool
     widget: ft.Container | None
 
@@ -22,5 +23,6 @@ class TimerType(TypedDict):
 class ActiveTimerType(TypedDict):
     id: str
     name: str
-    time: time
+    time: t
+    default_time: t
     active: bool

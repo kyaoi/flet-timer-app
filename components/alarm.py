@@ -32,7 +32,7 @@ class Alarm:
                     self._show_stop_popup(alarm_text)
                     self._sound.play_alarm_sound()
                     self._page.update()
-                    # アラームが止められたときにスイッチをOFFにする
+                    # NOTE: アラームが止められたときにスイッチをOFFにする
                     self._trigger_off_alarm_display(alarm)
             sleep(1)
 
@@ -42,7 +42,7 @@ class Alarm:
         alarm["widget"].controls[0].controls[0].value = False
 
     def _show_stop_popup(self, alarm_text: ft.Text) -> None:
-        def stop_alarm(_):
+        def stop_alarm(_) -> None:
             self._sound.stop_alarm_sound()
             popup.open = False
             if self._page.controls:

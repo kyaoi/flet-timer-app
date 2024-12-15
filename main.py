@@ -31,9 +31,6 @@ def main(page: ft.Page):
         page.update()
 
     rail = sidebar(on_change)
-    # FIXME: 開発終了後元に戻す
-    rail.selected_index = 1
-    content.content = timer.timer()
     page.add(
         ft.Row(
             [

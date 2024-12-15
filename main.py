@@ -2,8 +2,9 @@ import threading
 
 import flet as ft
 
-from components.alerm import Alarm
+from components.alarm import Alarm
 from components.sidebar import sidebar
+from components.timer import Timer
 from utils.sound import Sound
 
 sound = Sound()
@@ -14,18 +15,19 @@ def main(page: ft.Page):
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
     selected_index = 0
     alarm = Alarm(sound, page)
+    timer = Timer(sound, page)
     content = ft.Container(
         expand=True,
     )
-    content.content = alarm.alerm()
+    content.content = alarm.alarm()
 
     def on_change(e: ft.ControlEvent):
         nonlocal selected_index
         selected_index = e.control.selected_index
         if selected_index == 0:
-            content.content = alarm.alerm()
+            content.content = alarm.alarm()
         else:
-            content.content = ft.Text("hoge")
+            content.content = timer.timer()
         page.update()
 
     rail = sidebar(on_change)

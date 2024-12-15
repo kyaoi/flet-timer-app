@@ -1,9 +1,9 @@
-# A flet-todo-app Flet app
+# flet-timer-app
 
-An example of a minimal Flet app.
+This is a simple timer app built with Flet.
 
-To run the app:
+## develop
 
-```
-flet run [app_directory]
+```bash
+flet run -d -r
 ```

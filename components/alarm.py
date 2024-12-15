@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 
 import flet as ft
 
+from components.types import AlarmType
 from utils.sound import Sound
 
 
@@ -10,31 +11,38 @@ class Alarm:
     def __init__(self, sound: Sound, page: ft.Page):
         self._sound = sound
         self._page = page
-        self.alarms = []
+        self.alarms: list[AlarmType] = []
         self.alarm_list = ft.Column(
             spacing=10, expand=True, scroll=ft.ScrollMode.ADAPTIVE
         )
 
-    def check_alarms(self):
+    def check_alarms(self) -> None:
         while True:
             now = datetime.now()
-            for alarm in self.alarms.copy():
+            for alarm in self.alarms:
                 if alarm["active"] and now >= alarm["time"]:
+                    alarm["active"] = False
                     alarm_text = ft.Text(
-                        f"⏰ Alarm! It's {alarm['time'].strftime('%H:%M:%S')}",
+                        f"⏰ Alarm! It's {alarm['time'].strftime('%H:%M')}",
                         color=ft.colors.RED,
                         size=16,
                         weight=ft.FontWeight.BOLD,
                     )
                     self._page.add(alarm_text)
-                    self.show_stop_popup(alarm_text)
+                    self._show_stop_popup(alarm_text)
                     self._sound.play_alarm_sound()
-                    self.alarms.remove(alarm)
                     self._page.update()
+                    # アラームが止められたときにスイッチをOFFにする
+                    self._trigger_off_alarm_display(alarm)
             time.sleep(1)
 
-    def show_stop_popup(self, alarm_text):
-        def stop_alarm(e):
+    def _trigger_off_alarm_display(self, alarm: AlarmType) -> None:
+        if alarm["widget"] is None:
+            return
+        alarm["widget"].controls[0].controls[0].value = False
+
+    def _show_stop_popup(self, alarm_text: ft.Text) -> None:
+        def stop_alarm(_):
             self._sound.stop_alarm_sound()
             popup.open = False
             if self._page.controls:
@@ -60,8 +68,8 @@ class Alarm:
         popup.open = True
         self._page.update()
 
-    def alerm(self):
-        def add_alarm(selected_time, alarm_to_edit=None):
+    def alarm(self) -> ft.Column:
+        def add_alarm(selected_time, alarm_to_edit: AlarmType | None = None) -> None:
             now = datetime.now()
             alarm_time = datetime.combine(now.date(), selected_time)
 
@@ -70,15 +78,15 @@ class Alarm:
 
             if alarm_to_edit:
                 alarm_to_edit["time"] = alarm_time
-                alarm_to_edit["time_text"].value = (
-                    f"Alarm set for: {alarm_time.strftime('%H:%M:%S')}"
-                )
+                alarm_to_edit[
+                    "time_text"
+                ].value = f"Alarm set for: {alarm_time.strftime('%H:%M')}"
                 self._page.update()
             else:
                 alarm_text = ft.Text(
-                    f"Alarm set for: {alarm_time.strftime('%H:%M:%S')}", size=16
+                    f"Alarm set for: {alarm_time.strftime('%H:%M')}", size=16
                 )
-                alarm = {
+                alarm: AlarmType = {
                     "time": alarm_time,
                     "time_text": alarm_text,
                     "active": True,
@@ -89,7 +97,7 @@ class Alarm:
                         ft.Row(
                             controls=[
                                 ft.Switch(
-                                    value=True,
+                                    value=alarm["active"],
                                     on_change=lambda e, alarm=alarm: toggle_alarm(
                                         e, alarm
                                     ),
@@ -132,35 +140,48 @@ class Alarm:
                 self.alarm_list.controls.append(alarm["widget"])
                 self._page.update()
 
-        def toggle_alarm(e, alarm):
+        def toggle_alarm(e, alarm: AlarmType) -> None:
             alarm["active"] = e.control.value
+            if alarm["active"]:
+                now = datetime.now()
 
-        def delete_alarm(e, alarm):
+                alarm_time = alarm["time"].replace(
+                    year=now.year, month=now.month, day=now.day
+                )
+
+                if alarm_time < now:
+                    alarm_time += timedelta(days=1)
+
+                alarm["time"] = alarm_time
+
+        def delete_alarm(_, alarm: AlarmType) -> None:
             self.alarms.remove(alarm)
-            self.alarm_list.controls.remove(alarm["widget"])
+            if alarm["widget"] in self.alarm_list.controls:
+                self.alarm_list.controls.remove(alarm["widget"])
             self._page.update()
 
-        def edit_alarm(e, alarm):
+        def edit_alarm(_, alarm: AlarmType) -> None:
             nonlocal time_picker
-            time_picker.on_change = lambda e: add_alarm(
+            time_picker.on_change = lambda _: add_alarm(
                 time_picker.value, alarm_to_edit=alarm
             )
             time_picker.open = True
             self._page.dialog = time_picker
             self._page.update()
 
-        def handle_time_selected(e):
+        def handle_time_selected(_) -> None:
             if time_picker.value:
                 add_alarm(time_picker.value)
 
         time_picker = ft.TimePicker(
+            value=datetime.now().time(),
             confirm_text="Set Alarm",
             error_invalid_text="Invalid time selected!",
             help_text="Pick the time for your alarm",
             on_change=handle_time_selected,
         )
 
-        def open_time_picker(e):
+        def open_time_picker(_) -> None:
             time_picker.on_change = handle_time_selected
             time_picker.open = True
             self._page.dialog = time_picker

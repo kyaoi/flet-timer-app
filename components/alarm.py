@@ -78,9 +78,9 @@ class Alarm:
 
             if alarm_to_edit:
                 alarm_to_edit["time"] = alarm_time
-                alarm_to_edit["time_text"].value = (
-                    f"Alarm set for: {alarm_time.strftime('%H:%M')}"
-                )
+                alarm_to_edit[
+                    "time_text"
+                ].value = f"Alarm set for: {alarm_time.strftime('%H:%M')}"
                 self._page.update()
             else:
                 alarm_text = ft.Text(

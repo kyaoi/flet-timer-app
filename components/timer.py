@@ -215,11 +215,13 @@ class Timer:
                         width=200,
                         weight=ft.FontWeight.BOLD,
                         color=ft.colors.BLUE_GREY_900,
+                        text_align=ft.TextAlign.CENTER,
                     ),
                     ft.Text(
                         f"{self.active_timer['time']}",
                         size=20,
                         color=ft.colors.BLUE_GREY_700,
+                        text_align=ft.TextAlign.CENTER,
                     ),
                     ft.Row(
                         controls=[
@@ -293,7 +295,9 @@ class Timer:
                     if not value_field.value:
                         return
                     current_value = int(value_field.value)
-                    if label == "Hours":
+                    if current_value < 0:
+                        current_value = 0
+                    elif label == "Hours":
                         if current_value < 23:
                             current_value += 1
                         if current_value >= 24:
@@ -312,6 +316,12 @@ class Timer:
                     current_value = int(value_field.value)
                     if current_value > 0:
                         current_value -= 1
+                        if label == "Hours":
+                            if current_value >= 24:
+                                current_value = 23
+                        elif label != "Hours":
+                            if current_value >= 60:
+                                current_value = 59
                     if current_value < 0:
                         current_value = 0
                     value_field.value = f"{current_value:02}"
@@ -420,6 +430,7 @@ class Timer:
                         name_field,
                         self.error_message,
                     ],
+                    width=300,
                     spacing=10,
                 ),
                 actions=[

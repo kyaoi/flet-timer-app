@@ -12,7 +12,15 @@ class AlarmType(TypedDict):
 
 
 class TimerType(TypedDict):
+    id: str
     name: str
     time: time
     active: bool
     widget: ft.Container | None
+
+
+class ActiveTimerType(TypedDict):
+    id: str
+    name: str
+    time: time
+    active: bool

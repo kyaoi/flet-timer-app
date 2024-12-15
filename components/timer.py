@@ -1,9 +1,10 @@
-from datetime import time
+import uuid
+from datetime import datetime, time, timedelta
 from time import sleep
 
 import flet as ft
 
-from components.types import TimerType
+from components.types import ActiveTimerType, TimerType
 from utils.sound import Sound
 
 # [Timerの設計]
@@ -35,35 +36,61 @@ class Timer:
         )
         self._save_button_disabled = False
         self.error_message = ft.Text(value="", size=12, color=ft.colors.RED)
-        self.active_timer = None
+        self.active_timer: ActiveTimerType | None = None
+        self.active_timer_content = ft.Column(
+            expand=True,
+            alignment=ft.MainAxisAlignment.CENTER,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        )
 
-    def check_timers(self):
-        print("hoge")
+    def check_timers(self) -> None:
         while True:
-            # if self.active_timer:
-            #     now = datetime.now()
-            #     for timer in self.timers.copy():
-            #         if now.time() >= timer["time"]:
-            #             self._show_popup(timer)
-            #             self._sound.play_alarm_sound()
-            #             self.timers.remove(timer)
-            #             self._update_timer_list()
-            #
-            sleep(1)
+            if self.active_timer is None:
+                continue
+            if self.active_timer["active"]:
+                sleep(1)
+                if not self.active_timer["active"]:
+                    continue
+                if self.active_timer["time"] != time(hour=0, minute=0, second=0):
+                    self.active_timer["time"] = (
+                        datetime.combine(datetime.min, self.active_timer["time"])
+                        - timedelta(seconds=1)
+                    ).time()
+                    self._update_active_timer_content()
+                    self._page.update()
+                    if self.active_timer["time"] == time(hour=0, minute=0, second=0):
+                        self._sound.play_alarm_sound()
+                        self._show_popup()
+                        self._page.update()
 
-    def _show_popup(self, timer):
+    def _trigger_off_timer_display(self) -> None:
+        if self.active_timer and self.active_timer["active"]:
+            self.active_timer["active"] = False
+            for t in self.timers:
+                print("hoge============")
+                if t["id"] == self.active_timer["id"]:
+                    t["active"] = False
+            self._update_timer_list()
+            self._page.update()
+
+    def _show_popup(self) -> None:
         """タイマー終了時のポップアップ表示"""
+        if self.active_timer is None:
+            return
 
-        def stop_sound(e):
+        def stop_sound(_):
+            if self.active_timer is None:
+                return
             self._sound.stop_alarm_sound()
             popup.open = False
+            self._trigger_off_timer_display()
             self._page.update()
 
         popup = ft.AlertDialog(
             modal=True,
             title=ft.Text("⏰ Timer Ended"),
             content=ft.Text(
-                f"Timer '{timer['name']}' has reached the set time!",
+                f"Timer '{self.active_timer['name']}' has reached the set time!",
                 color=ft.colors.RED,
             ),
             actions=[
@@ -151,16 +178,51 @@ class Timer:
 
         self._page.update()
 
-    def _update_active_timer(self, timer: TimerType):
-        # TODO: ここでactive_timerを更新する
-        pass
+    def _update_active_timer(self, timer: TimerType) -> None:
+        self.active_timer = {
+            "id": timer["id"],
+            "name": timer["name"],
+            "time": timer["time"],
+            "active": False,
+        }
+
+    def _update_active_timer_content(self):
+        if self.active_timer is None:
+            return
+        self.active_timer_content.controls.clear()
+        self.active_timer_content.controls.append(
+            ft.Text(
+                f"{self.active_timer['name']}",
+                size=20,
+                weight=ft.FontWeight.BOLD,
+                color=ft.colors.BLUE_GREY_900,
+            )
+        )
+        self.active_timer_content.controls.append(
+            ft.Text(
+                f"{self.active_timer['time']}",
+                size=20,
+                color=ft.colors.BLUE_GREY_700,
+            )
+        )
+        self._page.update()
+
+    def _trigger_off_active_timer(self, id: str) -> None:
+        if not self.active_timer:
+            return
+        if self.active_timer["id"] == id:
+            self.active_timer["active"] = not self.active_timer["active"]
+            self._update_active_timer_content()
+            self._page.update()
 
     def _toggle_timer(self, timer: TimerType):
         """タイマーの動作を制御"""
         if not timer["active"]:
             for t in self.timers:
                 t["active"] = False
-            self.active_timer = timer
+            self._update_active_timer(timer)
+
+        self._trigger_off_active_timer(timer["id"])
 
         timer["active"] = not timer["active"]
         self._update_timer_list()
@@ -168,8 +230,7 @@ class Timer:
     def _delete_timer(self, timer: TimerType):
         """タイマーを削除"""
         self.timers.remove(timer)
-        if self.active_timer == timer:
-            self.active_timer = None
+        self._trigger_off_active_timer(timer["id"])
         self._update_timer_list()
 
     def timer(self) -> ft.Container:
@@ -177,7 +238,7 @@ class Timer:
             """タイマー設定ポップアップを表示"""
 
             # 入力フィールドと増減ボタン
-            def create_field(label, initial_value):
+            def create_field(label: str, initial_value: str) -> ft.Column:
                 """フィールドと増減ボタンを作成"""
                 value_field = ft.TextField(
                     value=initial_value,
@@ -185,7 +246,9 @@ class Timer:
                     text_align=ft.TextAlign.CENTER,
                 )
 
-                def increase_value(e):
+                def increase_value(_):
+                    if not value_field.value:
+                        return
                     current_value = int(value_field.value)
                     if label == "Hours":
                         if current_value < 23:  # 時間は最大23
@@ -200,7 +263,9 @@ class Timer:
                     value_field.value = f"{current_value:02}"  # 2桁表示
                     self._page.update()
 
-                def decrease_value(e):
+                def decrease_value(_):
+                    if not value_field.value:
+                        return
                     current_value = int(value_field.value)
                     if current_value > 0:  # 最小値は0
                         current_value -= 1
@@ -236,13 +301,20 @@ class Timer:
                 label="Timer Name", value=f"Timer {len(self.timers) + 1}"
             )
 
-            def save_timer(e):
+            def save_timer(_):
                 """タイマーを保存"""
                 try:
                     # 入力値を取得
-                    hours = int(hour_field.controls[1].value)
-                    minutes = int(minute_field.controls[1].value)
-                    seconds = int(second_field.controls[1].value)
+                    if (
+                        not isinstance(hour_field.controls[1], ft.TextField)
+                        or not isinstance(minute_field.controls[1], ft.TextField)
+                        or not isinstance(second_field.controls[1], ft.TextField)
+                    ):
+                        return
+
+                    hours = int(str(hour_field.controls[1].value))
+                    minutes = int(str(minute_field.controls[1].value))
+                    seconds = int(str(second_field.controls[1].value))
 
                     # 入力値をチェック
                     if (
@@ -265,6 +337,7 @@ class Timer:
                     )
 
                     timer: TimerType = {
+                        "id": str(uuid.uuid4()),
                         "name": timer_name,
                         "time": timer_time,
                         "active": False,
@@ -347,11 +420,7 @@ class Timer:
                         [
                             self.timer_list,
                             ft.VerticalDivider(width=1),
-                            ft.Column(
-                                spacing=10,
-                                expand=True,
-                                scroll=ft.ScrollMode.ADAPTIVE,
-                            ),
+                            self.active_timer_content,
                         ],
                         expand=True,
                     ),
